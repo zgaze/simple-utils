@@ -25,22 +25,21 @@ TEST(testCase,test0) {
 	std::string k1 = "asdasda";
 	c_hash.Get(k1, ret);std::cout << ret << "\n";
 	c_hash.Remove("11");
-	c_hash.Get(k1, ret);std::cout << ret << "\n";
+	EXPECT_EQ(c_hash.Get(k1, ret), 0);std::cout << ret << "\n";
 	c_hash.Remove("33");
-	c_hash.Get(k1, ret);std::cout << ret << "\n";
+	EXPECT_EQ(c_hash.Get(k1, ret), 0);std::cout << ret << "\n";
 	c_hash.Remove("44");
-	c_hash.Get(k1, ret);std::cout << ret << "\n";
+	EXPECT_EQ(c_hash.Get(k1, ret), 0);std::cout << ret << "\n";
 	c_hash.Remove("22");
-	c_hash.Get(k1, ret);std::cout << ret << "\n";
-	c_hash.Get(k1, ret);std::cout << ret << "\n";
+	EXPECT_EQ(c_hash.Get(k1, ret), 0);std::cout << ret << "\n";
 	c_hash.Add("11");
-	c_hash.Get(k1, ret);std::cout << ret << "\n";
+	EXPECT_EQ(c_hash.Get(k1, ret), 0);std::cout << ret << "\n";
 	c_hash.Add("33");
-	c_hash.Get(k1, ret);std::cout << ret << "\n";
+	EXPECT_EQ(c_hash.Get(k1, ret), 0);std::cout << ret << "\n";
 	c_hash.Add("44");
-	c_hash.Get(k1, ret);std::cout << ret << "\n";
+	EXPECT_EQ(c_hash.Get(k1, ret), 0);std::cout << ret << "\n";
 	c_hash.Add("22");
-	c_hash.Get(k1, ret);std::cout << ret << "\n";
+	EXPECT_EQ(c_hash.Get(k1, ret), 0);std::cout << ret << "\n";
 }
 
 
