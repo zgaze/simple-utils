@@ -19,54 +19,86 @@ struct KvPair {
 	char payload[];
 };
 
+struct SkipListLevelIndex {
+	SkipListLevelIndex* next_;
+	int64_t size_;
+	struct LevelPair {
+		double score_;
+		SkipListLevelIndex* data_;
+	};
+	LevelPair lv[8];
+};
+
 class Index {
 	bool Insert(const KvPair& kv) = 0;
   bool Delete(const KvPair& kv) = 0;
 	bool Search(KvPair* kv) = 0;
 };
 
+char* mmap_data;
+
 // 还是要多个index公用一个文件内存池
 template<int N = min_payload_block_size>
-class RadixSkipList : public Index {
+class BatchSkipList : public Index {
  public:
-	RadixSkipList();
-	~RadixSkipList();
+	BatchSkipList() {
+		header_ = new BatchSkipListHeader();
+		header_->total_size_ = 0;
+		header_->payload_size_ = 4 * sizeof(int64_t); 
+
+		level_index_ = new SkipListLevelIndex();
+		level_index_->next_ = nullptr;
+	}
+	~BatchSkipList() {
+		delete header_;
+		delete level_index_;
+		delete payload_;
+	}
 
 	bool Insert(const KvPair& kv) override;
   bool Delete(const KvPair& kv) override;
 	bool Search(KvPair* kv) override;
-	struct RadixSkipListHeader {
+	struct BatchSkipListHeader {
 		int64_t total_size_;
 		int32_t block_size_ = min_payload_block_size;
 		int32_t payload_size_;
 	};
  private:
-	RadixSkipListHeader *header_;
+	BatchSkipListHeader *header_;
 	SkipListLevelIndex* level_index_;	
 	PayloadBlock<N>* payload_;
 };
 
 template<int N>
-bool RadixSkipList<N>::Insert(const KvPair& kv) {
-	
+bool BatchSkipList<N>::Insert(const KvPair& kv) {
+	header_->
 }
 
 template<int N>
-Payload* RadixSkipList<N>::GetPayloadByKeyScore(
+Payload* BatchSkipList<N>::GetPayloadByKeyScore(
 	const char* key, int32_t len, double score) {
-	return payload_->FindKeyFromBlock(key, len, score);
+	return payload_->FindKeyFromBlock(key, len, score, header_->payload_size_);
 }
 
 template<int N>
-bool RadixSkipList<N>::Search(KvPair* kv) {
+bool BatchSkipList<N>::Search(KvPair* kv) {
 	Payload* data = GetPayloadByKeyScore(kv->key, kv->len, kv->score);
+	if (data == nullptr) {
+		return false;
+	}
+	if (data->doc_id == *(int64_t*)(char*)kv->key) {
+		kv->score = data->score;
+		kv->payload = data->data_;
+		return true;
+	}
+	return false;
 }
 
 template<int N>
-bool RadixSkipList<N>::LoadFromMemory(const char* const_begin) {
+bool BatchSkipList<N>::LoadFromMemory(const char* const_begin) {
 	char* begin = const_cast<char*>(const_begin);
-	header_ = reinterpret_cast<RadixSkipListHeader*>(begin);
-	begin += sizeof(RadixSkipListHeader);
+	header_ = reinterpret_cast<BatchSkipListHeader*>(begin);
+	begin += sizeof(BatchSkipListHeader);
 	level_index_ = reinterpret_cast<SkipListLevelIndex*>(begin);
 	begin += sizeof(SkipListLevelIndex);
 	payload_ = reinterpret_cast<PayloadBlock<N>*>(begin);
