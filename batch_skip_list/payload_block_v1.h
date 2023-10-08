@@ -15,8 +15,12 @@ struct Payload {
 };
 
 template<int N>
-struct PayloadBlock {
-	Payload* FindKeyFromBlock(const char* key, int32_t len, double score, int32_t payload_size);
+class PayloadBlock {
+	PayloadBlock();
+	~PayloadBlock();
+	Payload* FindKeyFromBlock(const char* key, int32_t len,
+		double score, int32_t payload_size);
+	bool Insert(int64_t doc_id, double score, char* payload_data);
 	double min_;
 	double max_;
 	int32_t next_;
@@ -24,6 +28,53 @@ struct PayloadBlock {
 	int32_t payload_size_;
 	char payloads_[N]; 
 };
+
+// TODO 需要改成尾插
+template<int N> 
+bool PayloadBlock<N>::Reblance(PayloadBlock<N>* block, double mid_score) {
+	block->min_ = this->min_;
+	int32_t offset = 0;
+	for (int i = 0; i < this->size + 1/2; ++i) {
+		memcpy(&new_payload->payloads_[offset],
+			payloads_[offset], payload_size_);
+		Payload* payload = reinterpret_cast<Payload*>&new_payload->payloads_[offset];
+		block->max = payload->score;
+		offset += payload_size_;
+	}
+	block->next_ = this;
+	Payload* payload = reinterpret_cast<Payload*>&new_payload->payloads_[offset];
+	this->min = payload->score;
+}
+
+template<int N>
+bool PayloadBlock<N>::Insert(int64_t doc_id, double score,
+	char* payload_data, PayloadBlock<N>* new_payload) {
+	// 不存在, index里面
+	if (score < min_) {
+		new_payload = new PayloadBlock<N>();
+		new_payload->min = score;
+		// 分裂
+		size_t offset = 0;
+		if (payload_size_ * (this->size + 1) >= N) {
+			memcpy(&new_payload->payloads_[offset], payload_data, payload_size_);
+			offset += payload_size_;
+			for (int i = 0; i < this->size + 1/2; ++i) {
+				memcpy(&new_payload->payloads_[offset],
+					payloads_[offset -payload_size_], payload_size_);
+				offset += payload_size_;
+				Payload* payload = reinterpret_cast<Payload*>&new_payload->payloads_[offset];
+				new_payload->max = payload->score; 
+			}
+		} else {
+			memcpy(&new_payload->payloads_[0], payload_data, payload_size_);
+			memcpy(&new_payload->payloads_[payload_size_], payloads_, this->size * payload_size_); 
+			new_payload->max = this->max_;
+		}
+		new_payload->next = this->next_;
+		new_payload->size = this->size_ + 1;
+	} else if (score >= min_ && score <= max_) {
+	}
+}
 
 template<int N>
 Payload* PayloadBlock<N>::FindKeyFromBlock(const char* key, int32_t len,

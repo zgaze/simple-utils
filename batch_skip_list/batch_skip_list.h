@@ -71,7 +71,17 @@ class BatchSkipList : public Index {
 
 template<int N>
 bool BatchSkipList<N>::Insert(const KvPair& kv) {
-	header_->
+	// 根据score 到index找到payload, 行为和 sort table的查找类似
+	double score = kv->score_;
+	PayloadBlock<N>* block = level_index_->FindMatchBlock(score); 
+	if (block != nullptr) {
+		block->Insert(kv);
+	} else {
+		// alloc 一个block
+		block = nullptr;
+	}
+	level_index_->UpdateIndex(block, score);
+	header_->total_size_ ++;
 }
 
 template<int N>
